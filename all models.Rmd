@@ -1,0 +1,232 @@
+---
+title: "model"
+author: "Nazmul haque"
+date: "2024-10-07"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#final.data1$V106 <- relevel(as.factor(final.data1$V106), ref = "0")
+cox.model100 <- coxph(Surv(eventtimeex, event==1) ~motherage1 + motherage3 + B4 + birthdate_diff + media + BORD1 +V136+ as.factor(V024) + as.factor(V106)+ as.factor(V190) + as.factor(V701)+V025 + V130, data = final.data1)
+
+# View the summary of the Cox model
+summary(cox.model100)
+```
+```{r}
+datafinal = final.data1
+datafinal$event = ifelse(datafinal$event ==0, 1, 0)
+library(glmnet)
+logistic = glm(event~motherage1 + motherage3 + B4 + birthdate_diff + media + BORD1 +V136+ as.factor(V024) + as.factor(V106)+ as.factor(V190) + as.factor(V701)+V025 + V130, data = datafinal , family = binomial(link = "logit"))
+```
+
+
+```{r}
+library(survival)
+
+# Assuming eventtime is the time to event variable and event is the event status variable (1 = event, 0 = censored)
+cox.model1 <- coxph(Surv(eventtime, event==1) ~motherage1 + motherage3 + B4 + birthdate_diff + media + BORD1 +V136+ division_2 + division_3 + division_4 + division_5 + division_6 + division_7 + division_8 + medu_2 + medu_3 + medu_4+ Wealth2+Wealth3 + fedu_2 + fedu_3 + fedu_4 + fedu_5+V025 + V130, data = final.data2)
+
+# View the summary of the Cox model
+summary(cox.model1)
+#table(final.data2$event)
+```
+
+
+```{r}
+library(coxme)
+coxme.frailty <- coxme(Surv(eventtime, event==1) ~ motherage1 + motherage3 + B4 + birthdate_diff + media + BORD1 +V136+ division_2 + division_3 + division_4 + division_5 + division_6 + division_7 + division_8 + medu_2 + medu_3 + medu_4+ Wealth2+Wealth3 + fedu_2 + fedu_3 + fedu_4 + fedu_5+V025 + V130 + (1|CASEID), 
+                           data = final.data2)
+```
+
+```{r}
+covariates <- final.data2[, c("motherage1", "motherage3", "B4", "birthdate_diff","media", "BORD1", "V136", "division_2", "division_3", "division_4", "division_5", "division_6", "division_7", "division_8" , "medu_2", "medu_3", "medu_4",  "Wealth2","Wealth3", "fedu_2", "fedu_3", "fedu_4","fedu_5", "V025", "V130")]
+
+library(cmprsk)
+crr.model <- crr(
+  ftime = final.data2$eventtime, 
+  fstatus = final.data2$event,
+  failcode = 1,
+  cov1 = covariates
+)
+```
+
+```{r}
+library(crrSC)
+crrc.model <- crrc(
+  ftime = final.data1$eventtimeex, 
+  fstatus = final.data1$event, 
+  cluster = final.data1$uncaseid,
+  failcode = 1,
+  cov1 = covariates,
+  na.action = na.omit,
+  gtol= 1e-6
+)
+```
+
+```{r}
+library(frailtyHL)
+q <- length(unique(final.data2$CASEID))  # Assuming q is large
+beta.init <- rep(0,25)
+v.init <- rep(0,q)
+theta.init <- 0.05
+h.like.model = hlike.frailty(CmpRsk(eventtime,event)~ motherage1 + motherage3 + B4 + birthdate_diff + media + BORD1 +V136+ division_2 + division_3 + division_4 + division_5 + division_6 + division_7 + division_8 + medu_2 + medu_3 + medu_4+ Wealth2+Wealth3 + fedu_2 + fedu_3 + fedu_4 + fedu_5+V025 + V130+ cluster(CASEID),
+                     data=final.data2,inits=list(beta=beta.init,theta=theta.init,v=v.init),
+                     order=1,frailty.cov="none",subHazard=T,MAX.ITER=300, TOL = 1e-03)
+#View(final.data2[, c("caseid", "CASEID")])
+
+```
+```{r}
+saveRDS(h.like.model2,"D:/survival paper/data/hlikenew2.rds")
+```
+
+```{r}
+final.data2$caseid = as.character(zap_labels(final.data2$CASEID))
+h.like.model
+```
+
+```{r}
+cox.model2 <- coxph(Surv(eventtime, event==2) ~ motherage1 + motherage3 + B4 + birthdate_diff + media + BORD1 +V136+ division_2 + division_3 + division_4 + division_5 + division_6 + division_7 + division_8 + medu_2 + medu_3 + medu_4+ Wealth2+Wealth3 + fedu_2 + fedu_3 + fedu_4 + fedu_5+V025 + V130, data = final.data1)
+```
+
+```{r}
+coxme.frailty2 <- coxme(Surv(eventtime, event==2) ~ motherage1 + motherage3 + B4 + birthdate_diff + media + BORD1 +V136+ division_2 + division_3 + division_4 + division_5 + division_6 + division_7 + division_8 + medu_2 + medu_3 + medu_4+ Wealth2+Wealth3 + fedu_2 + fedu_3 + fedu_4 + fedu_5+V025 + V130 + (1|uncaseid), data = final.data1)
+```
+
+```{r}
+library(cmprsk)
+crr.model2 <- crr(
+  ftime = final.data1$eventtime, 
+  fstatus = final.data1$event,
+  failcode = 2,
+  cov1 = covariates
+)
+```
+
+```{r}
+library(crrSC)
+crrc.model2 <- crrc(
+  ftime = final.data1$eventtime, 
+  fstatus = final.data1$event, 
+  cluster = final.data1$uncaseid,
+  failcode = 2,
+  cov1 = covariates,
+  na.action = na.omit,
+  gtol= 1e-6
+)
+```
+
+```{r}
+####### eitate jhamela ace
+final.data3 = final.data2
+final.data3$event = ifelse(final.data3$event == 1, 2 , ifelse(final.data3$event ==2,1, final.data3$event))
+```
+
+```{r}
+library(frailtyHL)
+q <- length(unique(final.data3$CASEID))  # Assuming q is large
+beta.init <- rep(0,25)
+v.init <- rep(0,q)
+theta.init <- 0.05
+h.like.model2 = hlike.frailty(CmpRsk(eventtime,event)~ motherage1 + motherage3 + B4 + birthdate_diff + media + BORD1 +V136+ division_2 + division_3 + division_4 + division_5 + division_6 + division_7 + division_8 + medu_2 + medu_3 + medu_4+ Wealth2+Wealth3 + fedu_2 + fedu_3 + fedu_4 + fedu_5+V025 + V130+ cluster(CASEID),
+                     data=final.data3,inits=list(beta=beta.init,theta=theta.init,v=v.init),
+                     order=1,frailty.cov="none",subHazard=T,MAX.ITER=300, TOL = 1e-03)
+
+```
+
+```{r}
+h.like.model2
+```
+
+```{r}
+summary(crr.model)
+```
+```{r}
+summary(crrc.model) 
+final.data1$eventtime100 = ifelse(final.data1$eventtime==0, 1, final.data1$eventtime)
+
+summary(crrc.model)
+crrc.model$loglik
+sum(is.na(covariates))
+crrc.model$loglik
+crr.model$loglik
+crrc.model$score
+```
+
+```{r}
+crrc.model <- crrc(
+  ftime = final.data1$eventtime, 
+  fstatus = final.data1$event, 
+  cluster = final.data1$uncaseid,
+  failcode = 1,
+  cov1 = covariates
+)
+```
+
+```{r}
+library(cmprsk)
+plot.predict.crr(pred)
+pred = predict.crr(crr.model, final.data1[,"B4"])
+pred2 = predict.crr(crr.model, final.data1[,c("division_1", "division_2", "division_3", "division_4", "division_5", "division_6", "division_7", "division_8")])
+plot.predict.crr(pred)
+plot.predict.crr(pred1)
+plot.predict.crr(pred2)
+pred1 = predict.crr(crr.model, final.data1[,"birthdate_diff"])
+plot(final.data1$eventtime, lin.pred)
+table(dummydata$eventtime)
+plot(cuminc(final.data1$eventtime, final.data1$event))
+table(final.data1$eventtime)
+
+plot(crr.model$res)
+```
+
+```{r}
+#cause1
+output<-data.frame(seq=1:25)
+output$cox1<-paste(round(exp(cox.model1$coefficients),3),"\n(",round(exp(sqrt(diag(cox.model1$var))),3),")",sep = "")
+zx<- data.frame(c=round(sqrt(diag(vcov(coxme.frailty))),3))
+output$coxf1<-paste(round(exp(coxme.frailty$coefficients),3),"\n(",zx$c,")",sep = "")
+output$Variables<-rownames(zx)
+output$crr1<-paste(round(exp(crr.model$coef),3),"\n(",round(exp(sqrt(diag(crr.model$var))),3),")",sep = "")
+output$crrc1<-paste(round(exp(crrc.model$coef),3),"\n(",round(exp(sqrt(diag(crrc.model$var))),3),")",sep = "")
+output$hlike1<-paste(round(exp(h.like.model$beta$Estimate),3),"\n(",round(exp(h.like.model$beta$SE),3),")",sep = "")
+#cause2
+output2<-data.frame(seq=1:25)
+output2$cox2<-paste(round(exp(cox.model2$coefficients),3),"\n(",round(exp(sqrt(diag(cox.model2$var))),3),")",sep = "")
+zx2<- data.frame(c=round(sqrt(diag(vcov(coxme.frailty2))),3))
+output2$coxf2<-paste(round(exp(coxme.frailty2$coefficients),3),"\n(",zx2$c,")",sep = "")
+output2$Variables<-rownames(zx2)
+output2$crr2<-paste(round(exp(crr.model2$coef),3),"\n(",round(exp(sqrt(diag(crr.model2$var))),3),")",sep = "")
+output2$crrc2<-paste(round(exp(crrc.model2$coef),3),"\n(",round(exp(sqrt(diag(crrc.model2$var))),3),")",sep = "")
+output2$hlike2<-paste(round(exp(h.like.model2$beta$Estimate),3),"\n(",round(exp(h.like.model2$beta$SE),3),")",sep = "")
+```
+```{r}
+library(officer)
+library(dplyr)
+doc<-read_docx()
+doc<-doc %>% body_add_table(output,style = "table_template")
+print(doc,target="D:\\Cause2.docx")
+```
+
+```{r}
+output<-data.frame(seq=1:25)
+output$hlike1<-paste(round(exp(h.like.model$beta$Estimate),4),"\n(",round(exp(h.like.model$beta$SE),4),")",sep = "")
+output$hlike.ci = paste(round(exp(h.like.model$beta$`2.5%`),4),"-",round(exp(h.like.model$beta$`97.5%`),4),sep = "")
+
+
+output$hlike2<-paste(round(exp(h.like.model2$beta$Estimate),4),"\n(",round(exp(h.like.model2$beta$SE),4),")",sep = "")
+output$hlike.ci2 = paste(round(exp(h.like.model2$beta$`2.5%`),4),"-",round(exp(h.like.model2$beta$`97.5%`),4),sep = "")
+```
+
+```{r}
+dim(final.data2)
+table(final.data2$event)
+library(dplyr)
+final.data2%>%
+  summarise(n_distinct(CASEID))
+
+```
+

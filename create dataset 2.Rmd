@@ -1,0 +1,270 @@
+---
+title: "dataset"
+author: "Nazmul haque"
+date: "2024-10-07"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+subset.data = merged.data.final1
+subset.data <- subset.data %>%
+  mutate(
+    # Create or modify the new variable based on the condition
+    QC304 = ifelse(QC304U == "Age in months", QC304N * 30, QC304N),
+    eventtime = coalesce(QN304, QC304)
+  )
+subset.data$eventtime = ifelse(is.na(subset.data$eventtime), subset.data$V008A- subset.data$B18, subset.data$eventtime)
+
+subset.data$eventtime = ifelse(subset.data$eventtime ==0, 1 , subset.data$eventtime)
+```
+
+```{r}
+subset.data$QN403A = as.factor(subset.data$QN403A)
+library(dplyr)
+subset.data <- subset.data %>%
+  mutate(
+    cat.QN403A = case_when(
+      QN403A %in% c("Asphyxia", "ABD", "ACE", "Incubator", "BCD", "BDE", "Lung problem", "Pneumonia", "Preterm delivery", "AB", "ABE", "AD", "BC", "BD", "BE", "CE", "DE") ~ 1,
+      QN403A == "None of the above" ~ 2,
+      QN403A == "Missing" ~ 3,
+      is.na(QN403A) ~ NA_real_,  # Ensure missing values remain NA
+      TRUE ~ NA_real_  # Assign NA for any other values
+    )
+  )
+my_list <- c("BF         " ,"BH         ", "BI         ","CE         " ,"E          " ,"EF         ", "EFHI       " ,"EFI        " ,"F          ", "FG         " ,"FH         ", "FHIJ       ", "FI         " ,"G          ", "GI         ","H          ", "I          ", "J          ", "AF         " ,"AI         ")
+subset.data$QC403A = as.factor(subset.data$QC403A)
+subset.data <- subset.data %>%
+  mutate(
+    cat.QC403A = case_when(
+      QC403A %in% my_list ~ 1,
+      QC403A == "K          " ~ 2,
+      is.na(QC403A) ~ NA_real_,  # Ensure missing values remain NA
+      TRUE ~ NA_real_  # Assign NA for any other values
+    )
+  )
+
+```
+
+```{r}
+subset.data <- subset.data %>%
+  mutate(event = ifelse(!is.na(cat.QN403A), cat.QN403A, cat.QC403A))
+subset.data$event = ifelse(subset.data$B5 == "No" & is.na(subset.data$event), 3, subset.data$event)
+subset.data <- subset.data %>%
+  mutate(event = ifelse(is.na(event), 0, event))
+table(subset.data$event)
+write.csv(subset.data, "D:/survival paper/data/survival data last.csv")
+```
+
+```{r}
+#table(subset.data$BORD)
+data <- subset.data %>%
+  mutate(birthdate = as.Date(birthdate, format = "%d-%m-%Y")) 
+
+data <- data %>%
+  arrange(QNCLUSTER, QNHNUMBER, QNMOTHER, BORD) %>% 
+  group_by(QNCLUSTER, QNHNUMBER, QNMOTHER) %>%  
+  mutate(
+    birthdate_diff = case_when(
+      BORD == 1 ~ 0,
+      BORD > 1 ~ as.numeric(birthdate - lag(birthdate), units = "days")
+    )
+  ) %>%
+  ungroup()
+
+```
+
+```{r}
+data$media= ifelse(as.numeric(data$V157) ==1 & as.numeric(data$V158) ==1 & as.numeric(data$V159) ==1, 0, 1 )
+data$motherage = data$B3- data$V011
+data$motherage = round(data$motherage/12,2)
+```
+
+```{r}
+var = c("QNCLUSTER", "QNHNUMBER", "QNMOTHER", "BORD","QN509","birthdate", "V024", "QNLINE","V005", "V012", "V106", "V113","V021","V023" ,"V025", "V190", "B4", "V701", "V705", "V714", "V717","B4", "M14", "M70","V404","M15", "V157","V158", "V159","M18", "M19", "V130", "V511", "B11", "V437", "V438","V445", "V136", "M1", "V201", "M17", "V218", "V212", "M4",  "B20", "B21", "V009", "V010", "QN304", "QC304N", "QC304U", "QN403A", "QC403A" , "V011", "B1", "B2", "B3", "SDIST", "BORD", "gap")
+var1 = c("QNCLUSTER", "QNHNUMBER", "QNMOTHER", "BORD","B0","birthdate", "V024","V106", "V190", "V025", "B4","motherage", "M17","M19", "media" , "birthdate_diff", "V701", "V705", "V714","V130", "V445", "V136", "eventtime", "event", "CASEID" )
+final.data = data[, var1]
+```
+
+```{r}
+final.data$V701 =ifelse(is.na(final.data$V701), 99, final.data$V701)
+final.data$V705 =ifelse(is.na(final.data$V705), 99, final.data$V705)
+```
+
+```{r}
+final.data2 <- final.data %>%
+  mutate(across(
+    .cols = -c(motherage, BORD, birthdate_diff, birthdate, M19, V445,V136, eventtime, event, CASEID),  # Exclude these columns
+    .fns = as.factor  # Convert remaining columns to factor
+  ))
+str(final.data2)
+```
+
+```{r}
+library(dplyr)
+# Create a condition for BORD1 == 2 and birthdate_diff == 0
+condition <- (final.data2$BORD1 == 2) & (final.data2$birthdate_diff == 0)
+final.data2$birthdate_diff[condition] <- dplyr::lag(final.data2$birthdate_diff)[condition]
+
+condition <- (final.data2$BORD1 == 3) & (final.data2$birthdate_diff == 0)
+final.data2$birthdate_diff[condition] <- dplyr::lag(final.data2$birthdate_diff)[condition]
+
+condition <- (final.data2$BORD1 == 4) & (final.data2$birthdate_diff == 0)
+final.data2$birthdate_diff[condition] <- dplyr::lag(final.data2$birthdate_diff)[condition]
+
+condition <- (final.data2$BORD1 == 5) & (final.data2$birthdate_diff == 0)
+final.data2$birthdate_diff[condition] <- dplyr::lag(final.data2$birthdate_diff)[condition]
+
+condition <- (final.data2$BORD1 == 6) & (final.data2$birthdate_diff == 0)
+final.data2$birthdate_diff[condition] <- dplyr::lag(final.data2$birthdate_diff)[condition]
+
+condition <- (final.data2$BORD1 == 7) & (final.data2$birthdate_diff == 0)
+final.data2$birthdate_diff[condition] <- dplyr::lag(final.data2$birthdate_diff)[condition]
+
+condition <- (final.data2$BORD1 == 8) & (final.data2$birthdate_diff == 0)
+final.data2$birthdate_diff[condition] <- dplyr::lag(final.data2$birthdate_diff)[condition]
+
+condition <- (final.data2$BORD1 == 9) & (final.data2$birthdate_diff == 0)
+final.data2$birthdate_diff[condition] <- dplyr::lag(final.data2$birthdate_diff)[condition]
+
+condition <- (final.data2$BORD1 == 10) & (final.data2$birthdate_diff == 0)
+final.data2$birthdate_diff[condition] <- dplyr::lag(final.data2$birthdate_diff)[condition]
+
+final.data2%>%
+  filter(BORD1==4)%>%
+  summarize(min = min(birthdate_diff), which.min(birthdate_diff))
+
+```
+
+```{r}
+ex.var = c("motherage", "V024", "V106", "V190", "V025", "B4", "BORD", "media", "V701", "V705", "V130", "birthdate_diff")
+```
+
+```{r}
+final.data2$division_1 = as.numeric(final.data2$V024==1)
+final.data2$division_2 = as.numeric(final.data2$V024==2)
+final.data2$division_3 = as.numeric(final.data2$V024==3)
+final.data2$division_4 = as.numeric(final.data2$V024==4)
+final.data2$division_5 = as.numeric(final.data2$V024==5)
+final.data2$division_6 = as.numeric(final.data2$V024==6)
+final.data2$division_7 = as.numeric(final.data2$V024==7)
+final.data2$division_8 = as.numeric(final.data2$V024==8)
+
+final.data2$fedu_1 = as.numeric(final.data2$V701==1)
+final.data2$fedu_2 = as.numeric(final.data2$V701==2)
+final.data2$fedu_3 = as.numeric(final.data2$V701==3)
+final.data2$fedu_4 = as.numeric(final.data2$V701==4)
+final.data2$fedu_5 = as.numeric(final.data2$V701==5)
+
+final.data2$medu_1 = as.numeric(final.data2$V106==1)
+final.data2$medu_2 = as.numeric(final.data2$V106==2)
+final.data2$medu_3 = as.numeric(final.data2$V106==3)
+final.data2$medu_4 = as.numeric(final.data2$V106==4)
+
+final.data2$Wealth1 = as.numeric(final.data2$V190==1|final.data2$V190==2)
+final.data2$Wealth2 = as.numeric(final.data2$V190==3)
+final.data2$Wealth3 = as.numeric(final.data2$V190==4|final.data2$V190==5)
+
+final.data2$motherage1 = as.numeric(final.data2$motherage < 20)
+final.data2$motherage2 = as.numeric(final.data2$motherage >=20 & final.data2$motherage <30)
+final.data2$motherage3 = as.numeric(final.data2$motherage >= 30)
+final.data2$QNNEW = ifelse(final.data2$B0 ==3, 1, 0)
+final.data2$BORD1 = final.data2$BORD - final.data2$QNNEW
+
+final.data2$V130 = ifelse(final.data2$V130 ==1,1, 0)
+final.data2$V025 = ifelse(final.data2$V025 ==1,1, 0)
+final.data2$B4 = ifelse(final.data2$B4==2, 1, 0)
+table(as.numeric(final.data2$V106))
+```
+
+```{r}
+library(dplyr)
+final.data2%>%
+  select(CASEID, eventtime, BORD1, birthdate_diff)
+```
+
+```{r}
+View(final.data2[, c("birthdate_diff", "CASEID", "BORD1", "BORD", "birthdate")])
+```
+
+```{r}
+table(a=final.data1$V106, final.data1$event)
+```
+
+```{r}
+library(haven)
+write_sav(final.data2, "D:/survival paper/data/survivalfinal100.sav")
+```
+
+```{r}
+final.data1$eventtimeex= ifelse(final.data1$eventtime==0, 1, final.data1$eventtime)
+table(final.data1$eventtimeex)
+
+```
+
+```{r}
+final.dataNew$eventnew= ifelse(final.dataNew$birthdate < as.Date("2021-01-01"), 0, final.dataNew$event)
+table(final.dataNew$event)
+```
+
+
+```{r}
+######## discriptive analysis ########
+#### Fitting KM ####
+#### KM on surgery ####
+library(survival)
+library(survminer)
+library(ggfortify)
+obj <- Surv(time = final.data1$eventtime, event = final.data1$event==1)
+km.model <- survfit(obj ~ 1, data = final.data1, conf.type="plain", conf.int = .90) # fiting KM
+#km.model <- summary(km.model)
+ggsurvplot(km.model, surv.median.line = "hv", conf.int = T, risk.table = T) # survival plot for surgery
+
+# estimating the nelson-alan estimator manually
+nel_al_surg0 <- cumsum(sum_surg$n.event[sum_surg$strata=='surgery=0']/sum_surg$n.risk[sum_surg$strata=='surgery=0']) # calculating Nelson-Aalen estimator for surgery=0
+nel_al_surg1 <- cumsum(sum_surg$n.event[sum_surg$strata=='surgery=1']/sum_surg$n.risk[sum_surg$strata=='surgery=1']) # calculating Nelson-Aalen estimator for surgery=1
+plot(sum_surg$time[sum_surg$strata=='surgery=0'], nel_al_surg0, type = 's', xlab = 'Time in days', ylab = 'Cumulative Hazard') # ploting cumulative hazard for surgery
+lines(sum_surg$time[sum_surg$strata=='surgery=1'], nel_al_surg1, type = 's', lty = 2)
+legend('topleft', legend=c("Surgery = 0", "Surgery = 1"), lty=1:2, cex=.8)
+
+# estimating the nelson-alan estimator with ggsurvplot
+ggsurvplot(heart_surg, data = heart_data, conf.int = .90, fun = "cumhaz")
+
+
+#### KM on surgery ####
+heart_trans <- survfit(heart ~ transplant, data = heart_data, conf.type="plain", conf.int = .90) # fiting KM
+heart_trans
+sum_trans <- summary(heart_trans)
+ggsurvplot(heart_trans, surv.median.line = "hv", conf.int = T, risk.table = T) # survival plot for transplant
+
+```
+```{r}
+ggplot() +
+  geom_segment(aes(x = 0, y = final.data1$CASEID, xend = final.data1$eventtime, yend = final.data1$CASEID, color = factor(final.data1$event)), linewidth = 1) +
+  geom_point(aes(x = final.data1$eventtime[which(final.data1$event == 0)], y = final.data1$CASEID[which(final.data1$event == 0)]), shape = "plus") +
+  scale_color_manual(values = c("blue", "red", "green", "orange")) +
+  guides(color = guide_legend(title = "Event (Death)")) +
+  theme_bw() +
+  labs(x = "Survival Time", y = "Id")
+
+```
+
+```{r}
+
+library(dplyr)
+BDBR81FL <- BDBR81FL %>%
+  rename(QNCLUSTER = V001, QNHNUMBER = V002, QNMOTHER = V003)
+
+finaldat <- merge(final.data1, BDBR81FL[, c("QNCLUSTER", "QNHNUMBER", "QNMOTHER", "V008A")],
+                  by = c("QNCLUSTER", "QNHNUMBER", "QNMOTHER"), all.x = TRUE)
+View(finaldat[, c("QNCLUSTER", "QNHNUMBER", "QNMOTHER", "V008A", "V106", "BORD")])
+```
+
+```{r}
+library(haven)
+write_sav(final.data2 , "D:/survival paper/data/VA survival.sav") 
+```
+

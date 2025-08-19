@@ -1,0 +1,76 @@
+---
+title: "Untitled"
+author: "Nazmul haque"
+date: "2024-10-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(foreign)
+library(lubridate)
+library(dplyr)
+br <- read.spss("C:\\Users\\user\\Downloads\\BD_2022_DHS_09072024_1619_180725\\BDBR81SV\\BDBR81FL.sav", use.value.labels=T,to.data.frame=T)
+va <- read.spss("C:\\Users\\user\\Downloads\\BD_2022_DHS_09072024_1619_180725\\BDVA81SV\\BDVA81FL.sav", use.value.labels=T,to.data.frame=T)
+
+# Assuming 'factor_variable' is your factor
+levels(br$B0) <- c("Single birth"  ,  "First", "Second" ,"3rd of multiple", "4th of multiple", "5th of multiple")
+
+#va$QN509<-as.numeric(va$QN509)
+br$birthdate<- dmy(paste(br$B17, br$B1, br$B2, sep = "-"))
+va$birthdateqn = dmy(paste(va$QN303D, va$QN303M, va$QN303Y, sep = "-"))
+va$birthdateqc = dmy(paste(va$QC303D, va$QC303M, va$QC303Y, sep = "-"))
+va$birthdate = coalesce(va$birthdateqn, va$birthdateqc)
+va = va[!is.na(va$birthdate),]
+
+br.ntwin <- br[br$B0 == "Single birth", ]
+br.twin <- br[br$B0 != "Single birth", ]
+va.ntwin<-va[is.na(va$QN509),]
+va.twin<-va[!is.na(va$QN509),]
+
+merge.data.nt.v = merge(va.ntwin,br.ntwin,by.x =c("QNCLUSTER", "QNHNUMBER", "QNMOTHER" ,"birthdate"), by.y = c("V001", "V002", "V003", "birthdate"), all.x = T)
+  
+merge.data.t.v = merge(va.twin,br.twin, by.y = c("V001", "V002", "V003", "birthdate", "B0"), 
+                       by.x =c("QNCLUSTER", "QNHNUMBER", "QNMOTHER" ,"birthdate", "QN509"), 
+                       all.x = T)
+merge.data.nt.v = subset(merge.data.nt.v, select = -B0)
+merge.data.v = rbind(merge.data.nt.v, merge.data.t.v)
+
+merge.data.nt.br = merge(br.ntwin,va.ntwin, by.x = c("V001", "V002", "V003", "birthdate"), 
+                        by.y =c("QNCLUSTER", "QNHNUMBER", "QNMOTHER" ,"birthdate"), 
+                        all.x = T)
+
+merge.data.t.br = merge(br.twin,va.twin, by.x = c("V001", "V002", "V003", "birthdate", "B0"), 
+                       by.y =c("QNCLUSTER", "QNHNUMBER", "QNMOTHER" ,"birthdate", "QN509"), 
+                       all.x = T)
+merge.data.nt.br = subset(merge.data.nt.br, select = -QN509)
+merge.data.br= rbind(merge.data.nt.br, merge.data.t.br)
+
+table(merge.data.br$B0)
+dim(merge.data.br)
+```
+
+```{r}
+unique_va <- merge.data.v %>%
+  distinct(QNCLUSTER, QNHNUMBER, QNMOTHER)
+br.re = merge.data.br %>% rename( QNCLUSTER = V001, QNHNUMBER = V002,QNMOTHER = V003 )
+merged.data.final <- br.re %>%
+  semi_join(unique_va, by = c("QNCLUSTER", "QNHNUMBER", "QNMOTHER"))
+uni =unique(merged.data.final[!is.na(merged.data.final$QNLINE),"CASEID"])
+
+unidata= data.frame(CASEID = uni)
+merged.data.final1 <- br.re %>%
+  semi_join(unidata, by = c("CASEID"))
+length(unique(merged.data.final1$CASEID))
+
+```
+
+```{r}
+library(haven)
+write_sav(merged.data.final,"C:\\Users\\user\\Downloads\\BD_2022_DHS_09072024_1619_180725\\BDBR81SV\\sure final data.sav")
+```
+
+

@@ -1,0 +1,946 @@
+---
+title: "Untitled"
+author: "Nazmul haque"
+date: "2024-10-09"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(frailtyHL)
+q <- length(unique(final.data1$uncaseid))  # Assuming q is large
+beta.init <- rep(0,25)
+v.init <- rep(0,q)
+theta.init <- 0.05
+h.like.model = hlike.frailty(CmpRsk(eventtime,event)~ motherage1 + motherage3 + B4 + media + birthdate_diff + BORD1+ V136+ division_1 + division_2 + division_3 + division_4 + division_5 + division_6 + division_7 + medu_1 + medu_2 + medu_3 + Wealth2+Wealth3 + fedu_1 + fedu_2 + fedu_3 + fedu_4 + V025 +V130+ cluster(uncaseid),
+                     data=final.data1,inits=list(beta=beta.init,theta=theta.init,v=v.init),
+                     order=1,frailty.cov="none",subHazard=T,MAX.ITER=30, TOL = 1e-03)
+
+```
+
+```{r}
+library(frailtyHL)
+q <- length(unique(final.data1$uncaseid))  # Assuming q is large
+beta.init <- rep(0,25)
+v.init <- rep(0,q)
+theta.init <- 0.05
+h.like.model = hlike.frailty(CmpRsk(eventtime,event)~ motherage1 + motherage3 + B4 + media + birthdate_diff + BORD1+ V136+ division_1 + division_2 + division_3 + division_4 + division_5 + division_6 + division_7 + medu_1 + medu_2 + medu_3 + Wealth2+Wealth3 + fedu_1 + fedu_2 + fedu_3 + fedu_4 + V025 +V130+ cluster(uncaseid),
+                     data=final.data1,inits=list(beta=beta.init,theta=theta.init,v=v.init),
+                     order=1,frailty.cov="none",subHazard=T,MAX.ITER=30, TOL = 1e-03)
+
+#?hlike.frailty
+```
+```{r}
+library(frailtyHL)
+q <- length(unique(final.data1$V024))  # Assuming q is large
+beta.init <- rep(0,18)
+v.init <- rep(0,q)
+theta.init <- 0.05
+h.like.model1 = hlike.frailty(CmpRsk(eventtime,event)~ motherage1 + motherage3 + B4 + media + birthdate_diff + BORD1+ V136 + medu_1 + medu_2 + medu_3 + Wealth2+Wealth3 + fedu_1 + fedu_2 + fedu_3 + fedu_4 + V025 +V130+ cluster(V024),data=final.data1,inits=list(beta=beta.init,theta=theta.init,v=v.init),order=1,frailty.cov="none",subHazard=T,MAX.ITER=30, TOL = 1e-03)
+
+```
+```{r}
+coef.hlike = h.like.model$beta$Estimate
+lin.pred= covariate_matrix %*% coef.hlike
+v =h.like.model$lambda.0
+v = as.data.frame(v)
+View(v)
+v$time = as.numeric(rownames(v))
+exp(-lin.pred)
+
+library(survival)
+c = survfit(sur.object~1,data = final.data1, subset = event ==1)
+v$surv = c$surv
+
+v$cif = v[1] *  v$surv
+
+plot(v$time, v$cif) 
+```
+
+
+
+```{r}
+times <- v$time
+baseline_hazards <- v[,"1"]
+beta <- -0.4537425450
+
+cumulative_hazards_0 <- numeric(length(times))
+cumulative_hazards_1 <- numeric(length(times))
+cif_0 <- numeric(length(times))
+cif_1 <- numeric(length(times))
+
+for (i in 1:length(times)) {
+  cumulative_hazards_0[i] <- sum(baseline_hazards[1:i])
+  cumulative_hazards_1[i] <- sum(baseline_hazards[1:i] * exp(beta))
+  
+  cif_0[i] <- 1 - exp(-cumulative_hazards_0[i])
+  cif_1[i] <- 1 - exp(-cumulative_hazards_1[i])
+}
+
+cif_data <- data.frame(
+  time = times,
+  CIF_0 = cif_0,
+  CIF_1 = cif_1
+)
+
+library(ggplot2)
+
+ggplot(cif_data, aes(x = time)) +
+  geom_line(aes(y = CIF_0, color = "Group 0")) +
+  geom_line(aes(y = CIF_1, color = "Group 1")) +
+  labs(title = "Cumulative Incidence Function (CIF)",
+       x = "Time",
+       y = "CIF") +
+  scale_color_manual(name = "Group", values = c("Group 0" = "blue", "Group 1" = "red")) +
+  theme_minimal()
+```
+
+
+
+```{r}
+v =h.like.model$lambda.0
+v = as.data.frame(v)
+v$time = as.numeric(rownames(v))
+times <- v$time
+
+baseline_hazards <- v$X1
+
+
+```
+
+```{r}
+library(survminer)
+#divisions
+betad2<-h.like.model$beta$Estimate[8]
+betad3<-h.like.model$beta$Estimate[9]
+betad4<-h.like.model$beta$Estimate[10]
+betad5<-h.like.model$beta$Estimate[11]
+betad6<-h.like.model$beta$Estimate[12]
+betad7<-h.like.model$beta$Estimate[13]
+betad8<-h.like.model$beta$Estimate[14]
+
+cumulative_hazards_0 <- numeric(length(times))
+cumulative_hazards_2 <- numeric(length(times))
+cumulative_hazards_3 <- numeric(length(times))
+cumulative_hazards_4 <- numeric(length(times))
+cumulative_hazards_5 <- numeric(length(times))
+cumulative_hazards_6 <- numeric(length(times))
+cumulative_hazards_7 <- numeric(length(times))
+cumulative_hazards_8 <- numeric(length(times))
+cif_0 <- numeric(length(times))
+cif_2 <- numeric(length(times))
+cif_3 <- numeric(length(times))
+cif_4 <- numeric(length(times))
+cif_5 <- numeric(length(times))
+cif_6 <- numeric(length(times))
+cif_7 <- numeric(length(times))
+cif_8 <- numeric(length(times))
+
+for (i in 1:length(times)) {
+  cumulative_hazards_0[i] <- sum(baseline_hazards[1:i])
+  cumulative_hazards_2[i] <- sum(baseline_hazards[1:i] * exp(betad2))
+  cumulative_hazards_3[i] <- sum(baseline_hazards[1:i] * exp(betad3))
+  cumulative_hazards_4[i] <- sum(baseline_hazards[1:i] * exp(betad4))
+  cumulative_hazards_5[i] <- sum(baseline_hazards[1:i] * exp(betad5))
+  cumulative_hazards_6[i] <- sum(baseline_hazards[1:i] * exp(betad6))
+  cumulative_hazards_7[i] <- sum(baseline_hazards[1:i] * exp(betad7))
+  cumulative_hazards_8[i] <- sum(baseline_hazards[1:i] * exp(betad8))
+
+  cif_0[i] <- 1 - exp(-cumulative_hazards_0[i])
+  cif_2[i] <- 1 - exp(-cumulative_hazards_2[i])
+  cif_3[i] <- 1 - exp(-cumulative_hazards_3[i])
+  cif_4[i] <- 1 - exp(-cumulative_hazards_4[i])
+  cif_5[i] <- 1 - exp(-cumulative_hazards_5[i])
+  cif_6[i] <- 1 - exp(-cumulative_hazards_6[i])
+  cif_7[i] <- 1 - exp(-cumulative_hazards_7[i])
+  cif_8[i] <- 1 - exp(-cumulative_hazards_8[i])
+
+}
+
+cif_data <- data.frame(
+  time = times,
+  CIF_0 = cif_0,
+  CIF_2 = cif_2,
+  CIF_3 = cif_3,
+  CIF_4 = cif_4,
+  CIF_5 = cif_5,
+  CIF_6 = cif_6,
+  CIF_7 = cif_7,
+  CIF_8 = cif_8
+)
+
+library(ggplot2)
+
+pt1 = ggplot(cif_data, aes(x = time)) +
+  geom_line(aes(y = CIF_0, color = "Barishal"), size = 1.2) +
+  geom_line(aes(y = CIF_2, color = "Chattogram"), size = 1.2) +  
+  geom_line(aes(y = CIF_3, color = "Dhaka"), size = 1.2) +
+  geom_line(aes(y = CIF_4, color = "Khulna"), size = 1.2) +
+  geom_line(aes(y = CIF_5, color = "Rajshahi"), size = 1.2) +
+  geom_line(aes(y = CIF_6, color = "Rangpur"), size = 1.2) +
+  geom_line(aes(y = CIF_7, color = "Mymensingh"), size = 1.2) +
+  geom_line(aes(y = CIF_8, color = "Sylhet"), size = 1.2) +
+
+  labs(title = "Cumulative Incidence Function (CIF) For Disease",
+       x = "Time (days)",
+       y = "Cumulative Incidence Function (CIF)") +
+  
+  scale_color_manual(name = "Divisions", 
+                     values = c("Barishal" = "#9B0000",   # Dark Red
+                                "Chattogram" = "#123979",           # Navy Blue
+                                "Dhaka" = "#006400",                # Dark Green
+                                "Khulna" = "#8B0082",               # Dark Purple
+                                "Rajshahi" = "#FF5C00",             # Dark Orange
+                                "Rangpur" = "green",              # Teal
+                                "Mymensingh" = "blue",           # Brown
+                                "Sylhet" = "black"))  +
+
+  theme_survminer() +
+  theme(plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+        legend.position = "top",   # Move the legend to the top of the plot
+        legend.title = element_text(size = 12, face = "bold", hjust = 0.5),  # Center legend title
+        legend.text = element_text(size = 10),  # Adjust legend text font
+        axis.title.x = element_text(size = 12, face = "bold"),  # Adjust x-axis label font
+        axis.title.y = element_text(size = 12, face = "bold"),  # Adjust y-axis label font
+        axis.text = element_text(size = 10)) +
+  guides(color = guide_legend(title.position = "top", title.hjust = 0.5))
+
+```
+```{r}
+# Save the plot
+ggsave(filename = "D:\\survival paper\\graph\\divisions.png",  # Specify the file name
+       plot = pt1,                                      # Specify the plot object
+       width = 10,                                     # Set the width of the output file (in inches)
+       height = 6,                                    # Set the height of the output file (in inches)
+       dpi = 300)                                     # Set the resolution (dots per inch)
+
+```
+
+```{r}
+#medu
+betad2<-h.like.model$beta$Estimate[15]
+betad3<-h.like.model$beta$Estimate[16]
+betad4<-h.like.model$beta$Estimate[17]
+
+
+cumulative_hazards_0 <- numeric(length(times))
+cumulative_hazards_2 <- numeric(length(times))
+cumulative_hazards_3 <- numeric(length(times))
+cumulative_hazards_4 <- numeric(length(times))
+
+
+cif_0 <- numeric(length(times))
+cif_2 <- numeric(length(times))
+cif_3 <- numeric(length(times))
+cif_4 <- numeric(length(times))
+
+
+for (i in 1:length(times)) {
+  cumulative_hazards_0[i] <- sum(baseline_hazards[1:i])
+  cumulative_hazards_2[i] <- sum(baseline_hazards[1:i] * exp(betad2))
+  cumulative_hazards_3[i] <- sum(baseline_hazards[1:i] * exp(betad3))
+  cumulative_hazards_4[i] <- sum(baseline_hazards[1:i] * exp(betad4))
+  
+
+  cif_0[i] <- 1 - exp(-cumulative_hazards_0[i])
+  cif_2[i] <- 1 - exp(-cumulative_hazards_2[i])
+  cif_3[i] <- 1 - exp(-cumulative_hazards_3[i])
+  cif_4[i] <- 1 - exp(-cumulative_hazards_4[i])
+  
+
+}
+
+cif_data <- data.frame(
+  time = times,
+  CIF_0 = cif_0,
+  CIF_2 = cif_2,
+  CIF_3 = cif_3,
+  CIF_4 = cif_4
+)
+
+library(ggplot2)
+library(survminer)
+pt2 = ggplot(cif_data, aes(x = time)) +
+  geom_line(aes(y = CIF_0, color = "No Education"), size = 1.2) +
+  geom_line(aes(y = CIF_2, color = "Primary"), size = 1.2) +  
+  geom_line(aes(y = CIF_3, color = "Secondary"), size = 1.2) +
+  geom_line(aes(y = CIF_4, color = "Higher"), size = 1.2) +
+  
+
+  labs(title = "Cumulative Incidence Function (CIF) For Disease",
+       x = "Time (days)",
+       y = "Cumulative Incidence Function (CIF)") +
+  
+  scale_color_manual(name = "Mother Education", 
+                     values = c("No Education" = "#9B0000",   # Dark Red
+                                "Primary" = "blue",           # Navy Blue
+                                "Secondary" = "green",                # Dark Green
+                                "Higher" = "#8B0082")) +
+
+  theme_survminer() +
+  theme(plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+        legend.position = "top",   # Move the legend to the top of the plot
+        legend.title = element_text(size = 12, face = "bold", hjust = 0.5),  # Center legend title
+        legend.text = element_text(size = 10),  # Adjust legend text font
+        axis.title.x = element_text(size = 12, face = "bold"),  # Adjust x-axis label font
+        axis.title.y = element_text(size = 12, face = "bold"),  # Adjust y-axis label font
+        axis.text = element_text(size = 10)) +
+  guides(color = guide_legend(title.position = "top", title.hjust = 0.5))
+
+ggsave(filename = "D:\\survival paper\\Medu.png",  # Specify the file name
+       plot = pt2,                                      # Specify the plot object
+       width = 10,                                     # Set the width of the output file (in inches)
+       height = 6,                                    # Set the height of the output file (in inches)
+       dpi = 300) 
+
+```
+
+```{r}
+#wealth
+betad2<-h.like.model$beta$Estimate[18]
+betad3<-h.like.model$beta$Estimate[19]
+
+
+
+cumulative_hazards_0 <- numeric(length(times))
+cumulative_hazards_2 <- numeric(length(times))
+cumulative_hazards_3 <- numeric(length(times))
+
+
+cif_0 <- numeric(length(times))
+cif_2 <- numeric(length(times))
+cif_3 <- numeric(length(times))
+
+
+for (i in 1:length(times)) {
+  cumulative_hazards_0[i] <- sum(baseline_hazards[1:i])
+  cumulative_hazards_2[i] <- sum(baseline_hazards[1:i] * exp(betad2))
+  cumulative_hazards_3[i] <- sum(baseline_hazards[1:i] * exp(betad3))
+  
+  
+
+  cif_0[i] <- 1 - exp(-cumulative_hazards_0[i])
+  cif_2[i] <- 1 - exp(-cumulative_hazards_2[i])
+  cif_3[i] <- 1 - exp(-cumulative_hazards_3[i])
+  
+  
+
+}
+
+cif_data <- data.frame(
+  time = times,
+  CIF_0 = cif_0,
+  CIF_2 = cif_2,
+  CIF_3 = cif_3
+)
+
+library(ggplot2)
+
+pt3 = ggplot(cif_data, aes(x = time)) +
+  geom_line(aes(y = CIF_0, color = "Poor"), size = 1.2) +
+  geom_line(aes(y = CIF_2, color = "Middle"), size = 1.2) +  
+  geom_line(aes(y = CIF_3, color = "Rich"), size = 1.2) +
+
+
+  labs(title = "Cumulative Incidence Function (CIF) For Disease",
+       x = "Time (days)",
+       y = "Cumulative Incidence Function (CIF)") +
+  
+  scale_color_manual(name = "Wealth Status", 
+                     values = c("Poor" = "darkgreen",   # Dark Red
+                                "Middle" = "blue",           # Navy Blue
+                                "Rich" = "#FF5C00")) +                # Dark Green
+  theme_survminer() +
+  theme(plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+        legend.position = "top",   # Move the legend to the top of the plot
+        legend.title = element_text(size = 12, face = "bold", hjust = 0.5),  # Center legend title
+        legend.text = element_text(size = 10),  # Adjust legend text font
+        axis.title.x = element_text(size = 12, face = "bold"),  # Adjust x-axis label font
+        axis.title.y = element_text(size = 12, face = "bold"),  # Adjust y-axis label font
+        axis.text = element_text(size = 10)) +
+  guides(color = guide_legend(title.position = "top", title.hjust = 0.5))
+
+
+```
+
+```{r}
+ggsave(filename = "D:\\survival paper\\graph\\wealth.png",  # Specify the file name
+       plot = pt3,                                      # Specify the plot object
+       width = 10,                                     # Set the width of the output file (in inches)
+       height = 6,                                    # Set the height of the output file (in inches)
+       dpi = 300) 
+```
+
+
+```{r}
+#fedu
+betad2<-h.like.model$beta$Estimate[20]
+betad3<-h.like.model$beta$Estimate[21]
+betad4<-h.like.model$beta$Estimate[22]
+betad5<-h.like.model$beta$Estimate[23]
+
+
+cumulative_hazards_0 <- numeric(length(times))
+cumulative_hazards_2 <- numeric(length(times))
+cumulative_hazards_3 <- numeric(length(times))
+cumulative_hazards_4 <- numeric(length(times))
+cumulative_hazards_5 <- numeric(length(times))
+
+cif_0 <- numeric(length(times))
+cif_2 <- numeric(length(times))
+cif_3 <- numeric(length(times))
+cif_4 <- numeric(length(times))
+cif_5 <- numeric(length(times))
+
+
+for (i in 1:length(times)) {
+  cumulative_hazards_0[i] <- sum(baseline_hazards[1:i])
+  cumulative_hazards_2[i] <- sum(baseline_hazards[1:i] * exp(betad2))
+  cumulative_hazards_3[i] <- sum(baseline_hazards[1:i] * exp(betad3))
+  cumulative_hazards_4[i] <- sum(baseline_hazards[1:i] * exp(betad4))
+  cumulative_hazards_5[i] <- sum(baseline_hazards[1:i] * exp(betad5))
+  
+
+  cif_0[i] <- 1 - exp(-cumulative_hazards_0[i])
+  cif_2[i] <- 1 - exp(-cumulative_hazards_2[i])
+  cif_3[i] <- 1 - exp(-cumulative_hazards_3[i])
+  cif_4[i] <- 1 - exp(-cumulative_hazards_4[i])
+  cif_5[i] <- 1 - exp(-cumulative_hazards_5[i])
+  
+
+}
+
+cif_data <- data.frame(
+  time = times,
+  CIF_0 = cif_0,
+  CIF_2 = cif_2,
+  CIF_3 = cif_3,
+  CIF_4 = cif_4,
+  CIF_5 = cif_5
+)
+
+library(ggplot2)
+
+pt4 = ggplot(cif_data, aes(x = time)) +
+  geom_line(aes(y = CIF_0, color = "No Education"), size = 1.2) +
+  geom_line(aes(y = CIF_2, color = "Primary"), size = 1.2) +  
+  geom_line(aes(y = CIF_3, color = "Secondary"), size = 1.2) +
+  geom_line(aes(y = CIF_4, color = "Higher"), size = 1.2) +
+  geom_line(aes(y = CIF_5, color = "Others"), size = 1.2) +
+  
+
+  labs(title = "Cumulative Incidence Function (CIF) For Disease",
+       x = "Time (days)",
+       y = "Cumulative Incidence Function (CIF)") +
+  
+  scale_color_manual(name = "Father Education", 
+                     values = c("No Educatio" = "#9B0000",   # Dark Red
+                                "Primary" = "#123979",           # Navy Blue
+                                "Secondary" = "#006400",                # Dark Green
+                                "Higher" = "#8B0082",               # Dark Purple
+                                "Others" = "#FF5C00"))  +
+
+  theme_survminer() +
+  theme(plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+        legend.position = "top",   # Move the legend to the top of the plot
+        legend.title = element_text(size = 12, face = "bold", hjust = 0.5),  # Center legend title
+        legend.text = element_text(size = 10),  # Adjust legend text font
+        axis.title.x = element_text(size = 12, face = "bold"),  # Adjust x-axis label font
+        axis.title.y = element_text(size = 12, face = "bold"),  # Adjust y-axis label font
+        axis.text = element_text(size = 10)) +
+  guides(color = guide_legend(title.position = "top", title.hjust = 0.5))
+
+ggsave(filename = "D:\\survival paper\\graph\\fedu.png",  # Specify the file name
+       plot = pt4,                                      # Specify the plot object
+       width = 10,                                     # Set the width of the output file (in inches)
+       height = 6,                                    # Set the height of the output file (in inches)
+       dpi = 300) 
+
+```
+
+```{r}
+#R/U
+betad2<-h.like.model$beta$Estimate[24]
+
+
+
+cumulative_hazards_0 <- numeric(length(times))
+cumulative_hazards_2 <- numeric(length(times))
+
+
+cif_0 <- numeric(length(times))
+cif_2 <- numeric(length(times))
+
+
+for (i in 1:length(times)) {
+  cumulative_hazards_0[i] <- sum(baseline_hazards[1:i])
+  cumulative_hazards_2[i] <- sum(baseline_hazards[1:i] * exp(betad2))
+
+  
+
+  cif_0[i] <- 1 - exp(-cumulative_hazards_0[i])
+  cif_2[i] <- 1 - exp(-cumulative_hazards_2[i])
+
+  
+
+}
+
+cif_data <- data.frame(
+  time = times,
+  CIF_0 = cif_0,
+  CIF_2 = cif_2)
+
+library(ggplot2)
+
+pt5 = ggplot(cif_data, aes(x = time)) +
+  geom_line(aes(y = CIF_0, color = "Rural"), size = 1.2) +
+  geom_line(aes(y = CIF_2, color = "Urban"), size = 1.2) +  
+
+  labs(title = "Cumulative Incidence Function (CIF) For Disease",
+       x = "Time (days)",
+       y = "Cumulative Incidence Function (CIF)") +
+  
+  scale_color_manual(name = "Place of Residence", 
+                     values = c("Rural" = "#FF5C00",   # Dark Red
+                                "Urban" = "blue")) +                # Dark Green
+  theme_survminer() +
+  theme(plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+        legend.position = "top",   # Move the legend to the top of the plot
+        legend.title = element_text(size = 12, face = "bold", hjust = 0.5),  # Center legend title
+        legend.text = element_text(size = 10),  # Adjust legend text font
+        axis.title.x = element_text(size = 12, face = "bold"),  # Adjust x-axis label font
+        axis.title.y = element_text(size = 12, face = "bold"),  # Adjust y-axis label font
+        axis.text = element_text(size = 10)) +
+  guides(color = guide_legend(title.position = "top", title.hjust = 0.5))
+
+ggsave(filename = "D:\\survival paper\\graph\\v025.png",  # Specify the file name
+       plot = pt5,                                      # Specify the plot object
+       width = 10,                                     # Set the width of the output file (in inches)
+       height = 6,                                    # Set the height of the output file (in inches)
+       dpi = 300) 
+```
+```{r}
+#religion
+betad2<-h.like.model$beta$Estimate[25]
+
+
+
+cumulative_hazards_0 <- numeric(length(times))
+cumulative_hazards_2 <- numeric(length(times))
+
+
+cif_0 <- numeric(length(times))
+cif_2 <- numeric(length(times))
+
+
+for (i in 1:length(times)) {
+  cumulative_hazards_0[i] <- sum(baseline_hazards[1:i])
+  cumulative_hazards_2[i] <- sum(baseline_hazards[1:i] * exp(betad2))
+
+  
+
+  cif_0[i] <- 1 - exp(-cumulative_hazards_0[i])
+  cif_2[i] <- 1 - exp(-cumulative_hazards_2[i])
+
+  
+
+}
+
+cif_data <- data.frame(
+  time = times,
+  CIF_0 = cif_0,
+  CIF_2 = cif_2)
+
+library(ggplot2)
+
+pt6 = ggplot(cif_data, aes(x = time)) +
+  geom_line(aes(y = CIF_0, color = "Others"), size = 1.2) +
+  geom_line(aes(y = CIF_2, color = "Islam"), size = 1.2) +  
+
+  labs(title = "Cumulative Incidence Function (CIF) For Disease",
+       x = "Time (days)",
+       y = "Cumulative Incidence Function (CIF)") +
+  
+  scale_color_manual(name = "Religion", 
+                     values = c("Others" = "#FF5C00",   # Dark Red
+                                "Islam" = "blue")) +                # Dark Green
+  theme_survminer() +
+  theme(plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+        legend.position = "top",   # Move the legend to the top of the plot
+        legend.title = element_text(size = 12, face = "bold", hjust = 0.5),  # Center legend title
+        legend.text = element_text(size = 10),  # Adjust legend text font
+        axis.title.x = element_text(size = 12, face = "bold"),  # Adjust x-axis label font
+        axis.title.y = element_text(size = 12, face = "bold"),  # Adjust y-axis label font
+        axis.text = element_text(size = 10)) +
+  guides(color = guide_legend(title.position = "top", title.hjust = 0.5))
+
+ggsave(filename = "D:\\survival paper\\graph\\Religion.png",  # Specify the file name
+       plot = pt6,                                      # Specify the plot object
+       width = 10,                                     # Set the width of the output file (in inches)
+       height = 6,                                    # Set the height of the output file (in inches)
+       dpi = 300) 
+```
+
+```{r}
+#morher age
+betad2<-h.like.model$beta$Estimate[1]
+betad3<-h.like.model$beta$Estimate[2]
+
+
+
+cumulative_hazards_0 <- numeric(length(times))
+cumulative_hazards_2 <- numeric(length(times))
+cumulative_hazards_3 <- numeric(length(times))
+
+
+cif_0 <- numeric(length(times))
+cif_2 <- numeric(length(times))
+cif_3 <- numeric(length(times))
+
+
+for (i in 1:length(times)) {
+  cumulative_hazards_0[i] <- sum(baseline_hazards[1:i])
+  cumulative_hazards_2[i] <- sum(baseline_hazards[1:i] * exp(betad2))
+  cumulative_hazards_3[i] <- sum(baseline_hazards[1:i] * exp(betad3))
+  
+  
+
+  cif_0[i] <- 1 - exp(-cumulative_hazards_0[i])
+  cif_2[i] <- 1 - exp(-cumulative_hazards_2[i])
+  cif_3[i] <- 1 - exp(-cumulative_hazards_3[i])
+  
+  
+
+}
+
+cif_data <- data.frame(
+  time = times,
+  CIF_0 = cif_0,
+  CIF_2 = cif_2,
+  CIF_3 = cif_3
+)
+
+library(ggplot2)
+
+pt7 = ggplot(cif_data, aes(x = time)) +
+  geom_line(aes(y = CIF_0, color = "20-30"), size = 1.2) +
+  geom_line(aes(y = CIF_2, color = "<20"), size = 1.2) +  
+  geom_line(aes(y = CIF_3, color = ">30"), size = 1.2) +
+
+
+  labs(title = "Cumulative Incidence Function (CIF) For Disease",
+       x = "Time (days)",
+       y = "Cumulative Incidence Function (CIF)") +
+  
+  scale_color_manual(name = "Mother Age", 
+                     values = c("20-30" = "darkgreen",   # Dark Red
+                                "<20" = "blue",           # Navy Blue
+                                ">30" = "#FF5C00")) +                # Dark Green
+  theme_survminer() +
+  theme(plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+        legend.position = "top",   # Move the legend to the top of the plot
+        legend.title = element_text(size = 12, face = "bold", hjust = 0.5),  # Center legend title
+        legend.text = element_text(size = 10),  # Adjust legend text font
+        axis.title.x = element_text(size = 12, face = "bold"),  # Adjust x-axis label font
+        axis.title.y = element_text(size = 12, face = "bold"),  # Adjust y-axis label font
+        axis.text = element_text(size = 10)) +
+  guides(color = guide_legend(title.position = "top", title.hjust = 0.5))
+
+ggsave(filename = "D:\\survival paper\\graph\\motherage.png",  # Specify the file name
+       plot = pt7,                                      # Specify the plot object
+       width = 10,                                     # Set the width of the output file (in inches)
+       height = 6,                                    # Set the height of the output file (in inches)
+       dpi = 300) 
+```
+```{r}
+#gender
+betad2<-h.like.model$beta$Estimate[3]
+
+
+
+cumulative_hazards_0 <- numeric(length(times))
+cumulative_hazards_2 <- numeric(length(times))
+
+
+cif_0 <- numeric(length(times))
+cif_2 <- numeric(length(times))
+
+
+for (i in 1:length(times)) {
+  cumulative_hazards_0[i] <- sum(baseline_hazards[1:i])
+  cumulative_hazards_2[i] <- sum(baseline_hazards[1:i] * exp(betad2))
+
+  
+
+  cif_0[i] <- 1 - exp(-cumulative_hazards_0[i])
+  cif_2[i] <- 1 - exp(-cumulative_hazards_2[i])
+
+  
+
+}
+
+cif_data <- data.frame(
+  time = times,
+  CIF_0 = cif_0,
+  CIF_2 = cif_2)
+
+library(ggplot2)
+
+pt8 = ggplot(cif_data, aes(x = time)) +
+  geom_line(aes(y = CIF_0, color = "Male"), size = 1.2) +
+  geom_line(aes(y = CIF_2, color = "Female"), size = 1.2) +  
+
+  labs(title = "Cumulative Incidence Function (CIF) For Disease",
+       x = "Time (days)",
+       y = "Cumulative Incidence Function (CIF)") +
+  
+  scale_color_manual(name = "Sex of Child", 
+                     values = c("Male" = "#FF5C00",   # Dark Red
+                                "Female" = "blue")) +                # Dark Green
+  theme_survminer() +
+  theme(plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+        legend.position = "top",   # Move the legend to the top of the plot
+        legend.title = element_text(size = 12, face = "bold", hjust = 0.5),  # Center legend title
+        legend.text = element_text(size = 10),  # Adjust legend text font
+        axis.title.x = element_text(size = 12, face = "bold"),  # Adjust x-axis label font
+        axis.title.y = element_text(size = 12, face = "bold"),  # Adjust y-axis label font
+        axis.text = element_text(size = 10)) +
+  guides(color = guide_legend(title.position = "top", title.hjust = 0.5))
+
+ggsave(filename = "D:\\survival paper\\graph\\gender.png",  # Specify the file name
+       plot = pt8,                                      # Specify the plot object
+       width = 10,                                     # Set the width of the output file (in inches)
+       height = 6,                                    # Set the height of the output file (in inches)
+       dpi = 300) 
+```
+
+
+```{r}
+cumulative_hazards_0 <- numeric(length(times))
+
+cif_0 <- numeric(length(times))
+
+
+
+for (i in 1:length(times)) {
+  cumulative_hazards_0[i] <- sum(baseline_hazards[1:i])
+  cif_0[i] <- 1 - exp(-cumulative_hazards_0[i])
+  
+
+}
+
+cif_data <- data.frame(
+  time = times,
+  CIF_0 = cif_0)
+
+library(ggplot2)
+
+pt9 = ggplot(cif_data, aes(x = time)) +
+  geom_line(aes(y = CIF_0, color = "Male"), size = 1.2, color = "red") +  
+
+  labs(title = "Cumulative Incidence Function (CIF) For Disease using Hlike model",
+       x = "Time (days)",
+       y = "Cumulative Incidence Function (CIF)") +                # Dark Green
+  theme_survminer() +
+  theme(plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+        legend.position = "top",   # Move the legend to the top of the plot
+        legend.title = element_text(size = 12, face = "bold", hjust = 0.5),  # Center legend title
+        legend.text = element_text(size = 10),  # Adjust legend text font
+        axis.title.x = element_text(size = 12, face = "bold"),  # Adjust x-axis label font
+        axis.title.y = element_text(size = 12, face = "bold"),  # Adjust y-axis label font
+        axis.text = element_text(size = 10)) +
+  guides(color = guide_legend(title.position = "top", title.hjust = 0.5))
+
+ggsave(filename = "D:\\survival paper\\graph\\overall.png",  # Specify the file name
+       plot = pt9,                                      # Specify the plot object
+       width = 10,                                     # Set the width of the output file (in inches)
+       height = 6,                                    # Set the height of the output file (in inches)
+       dpi = 300) 
+```
+
+
+```{r}
+mod = survfit(Surv(final.data2$eventtime, final.data2$event==1)~1)
+tt= mod$surv
+hazrd = 1-tt
+cumhaz = numeric(length(unique(mod$time)))
+for (i in c(1:unique(unique(mod$time)))){
+  cumhaz[i]= sum(hazrd[1:i])
+}
+
+length(mod$time)
+length(hazrd)
+cif.da = data.frame(time = mod$time, hazrd = hazrd)
+pt10 = ggplot(cif.da, aes(x = time)) +
+  geom_line(aes(y = hazrd, color = "Male"), size = 1.2, color = "red") +  
+
+  labs(title = "Cumulative Incidence Function (CIF) For Disease using K-M model",
+       x = "Time (days)",
+       y = "Cumulative Incidence Function (CIF)") +                # Dark Green
+  theme_survminer() +
+  theme(plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+        legend.position = "top",   # Move the legend to the top of the plot
+        legend.title = element_text(size = 12, face = "bold", hjust = 0.5),  # Center legend title
+        legend.text = element_text(size = 10),  # Adjust legend text font
+        axis.title.x = element_text(size = 12, face = "bold"),  # Adjust x-axis label font
+        axis.title.y = element_text(size = 12, face = "bold"),  # Adjust y-axis label font
+        axis.text = element_text(size = 10)) +
+  guides(color = guide_legend(title.position = "top", title.hjust = 0.5))
+
+pt10 = pt10 + xlim(0,1500)
+
+```
+
+
+```{r}
+
+library(patchwork)
+com.plot = pt9 + pt10
+
+```
+
+```{r}
+ggsave(filename = "D:\\survival paper\\graph\\comparison.png",  # Specify the file name
+       plot = com.plot,                                      # Specify the plot object
+       width = 17,                                     # Set the width of the output file (in inches)
+       height = 6,                                    # Set the height of the output file (in inches)
+       dpi = 300) 
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+#gender
+#mod = survfit(Surv(final.data2$eventtime, final.data2$event==1)~1)
+#tt = summary(mod)
+#survival = unique(tt$surv)
+betad2<-h.like.model$beta$Estimate[3]
+
+
+
+cumulative_hazards_0 <- numeric(length(times))
+cumulative_hazards_2 <- numeric(length(times))
+
+
+cif_0 <- numeric(length(times))
+cif_2 <- numeric(length(times))
+
+
+for (i in 1:length(times)) {
+  cumulative_hazards_0[i] <- sum(baseline_hazards[1:i])
+  cumulative_hazards_2[i] <- sum(baseline_hazards[1:i] * exp(betad2))
+
+  
+
+  cif_0[i] <- (1 - exp(-cumulative_hazards_0[i]))*survival[i]
+  cif_2[i] <- (1 - exp(-cumulative_hazards_2[i]))*survival[i]
+
+  
+
+}
+
+cif_data <- data.frame(
+  time = times,
+  CIF_0 = cif_0,
+  CIF_2 = cif_2)
+
+library(ggplot2)
+
+pt8888 = ggplot(cif_data, aes(x = time)) +
+  geom_line(aes(y = CIF_0, color = "Male"), size = 1.2) +
+  geom_line(aes(y = CIF_2, color = "Female"), size = 1.2) +
+  
+
+  labs(title = "Cumulative Incidence Function (CIF) For Disease",
+       x = "Time (days)",
+       y = "Cumulative Incidence Function (CIF)") +
+  
+  scale_color_manual(name = "Sex of Child", 
+                     values = c("Male" = "#FF5C00",   # Dark Red
+                                "Female" = "blue")) +                # Dark Green
+  theme_survminer() +
+  theme(plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+        legend.position = "top",   # Move the legend to the top of the plot
+        legend.title = element_text(size = 12, face = "bold", hjust = 0.5),  # Center legend title
+        legend.text = element_text(size = 10),  # Adjust legend text font
+        axis.title.x = element_text(size = 12, face = "bold"),  # Adjust x-axis label font
+        axis.title.y = element_text(size = 12, face = "bold"),  # Adjust y-axis label font
+        axis.text = element_text(size = 10)) +
+      
+  guides(color = guide_legend(title.position = "top", title.hjust = 0.5))
+
+```
+
+
+```{r}
+library(survival)
+library(cmprsk)
+
+# Step 1: Fit the Fine-Gray model (without covariates)
+# Assume 'time' is the event time, 'status' is the event type (e.g., 0 for censored, 1 for event of interest, 2 for competing event)
+fg_model <- crr.model
+
+# Step 2: Extract the unique time points and baseline cumulative subdistribution hazard (for the event of interest)
+time_points <- fg_model$uftime   # Unique time points
+baseline_hazards <- fg_model$bfitj   # Baseline cumulative subdistribution hazards
+
+# Step 3: Manually calculate the CIF by integrating the baseline hazard
+# Initialize CIF and survival probability
+cif_manual <- numeric(length(time_points))
+survival <- 1
+
+# Loop through each time point to compute CIF
+for (i in 1:length(time_points)) {
+  # Compute the baseline hazard for time point i
+  hazard <- baseline_hazards[i]
+  
+  # Update CIF: Cumulative sum of hazard multiplied by survival probability
+  if (i == 1) {
+    cif_manual[i] <- hazard
+  } else {
+    cif_manual[i] <- cif_manual[i-1] + hazard * survival
+  }
+  
+  # Update survival probability for next time point
+  survival <- survival * (1 - hazard)
+}
+
+# Step 4: Plot the manually calculated overall CIF
+plot(time_points, cif_manual, type = "l", col = "blue", lwd = 2,
+     xlab = "Time", ylab = "Cumulative Incidence",
+     main = "Manually Calculated Overall CIF for Fine-Gray Model")
+```
+
