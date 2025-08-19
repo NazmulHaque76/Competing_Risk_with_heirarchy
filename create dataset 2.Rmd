@@ -18,7 +18,6 @@ subset.data <- subset.data %>%
     eventtime = coalesce(QN304, QC304)
   )
 subset.data$eventtime = ifelse(is.na(subset.data$eventtime), subset.data$V008A- subset.data$B18, subset.data$eventtime)
-
 subset.data$eventtime = ifelse(subset.data$eventtime ==0, 1 , subset.data$eventtime)
 ```
 
@@ -95,6 +94,19 @@ final.data$V705 =ifelse(is.na(final.data$V705), 99, final.data$V705)
 ```
 
 ```{r}
+final.data1 <- final.data %>%
+  mutate(across(
+    .cols = -c(motherage, BORD, birthdate_diff, birthdate, M19, V445,V136, eventtime, event),  # Exclude these columns
+    .fns = as.factor  # Convert remaining columns to factor
+  ))
+ex.var = c("motherage", "V024", "V106", "V190", "V025", "B4", "BORD", "media", "V701", "V705", "V130", "birthdate_diff")
+
+write_sav(final.data, "D:/survival paper/data/dummydata.sav")
+
+```
+
+
+```{r}
 final.data2 <- final.data %>%
   mutate(across(
     .cols = -c(motherage, BORD, birthdate_diff, birthdate, M19, V445,V136, eventtime, event, CASEID),  # Exclude these columns
@@ -137,10 +149,6 @@ final.data2%>%
   filter(BORD1==4)%>%
   summarize(min = min(birthdate_diff), which.min(birthdate_diff))
 
-```
-
-```{r}
-ex.var = c("motherage", "V024", "V106", "V190", "V025", "B4", "BORD", "media", "V701", "V705", "V130", "birthdate_diff")
 ```
 
 ```{r}
@@ -214,7 +222,6 @@ table(final.dataNew$event)
 ```{r}
 ######## discriptive analysis ########
 #### Fitting KM ####
-#### KM on surgery ####
 library(survival)
 library(survminer)
 library(ggfortify)
@@ -222,25 +229,8 @@ obj <- Surv(time = final.data1$eventtime, event = final.data1$event==1)
 km.model <- survfit(obj ~ 1, data = final.data1, conf.type="plain", conf.int = .90) # fiting KM
 #km.model <- summary(km.model)
 ggsurvplot(km.model, surv.median.line = "hv", conf.int = T, risk.table = T) # survival plot for surgery
-
-# estimating the nelson-alan estimator manually
-nel_al_surg0 <- cumsum(sum_surg$n.event[sum_surg$strata=='surgery=0']/sum_surg$n.risk[sum_surg$strata=='surgery=0']) # calculating Nelson-Aalen estimator for surgery=0
-nel_al_surg1 <- cumsum(sum_surg$n.event[sum_surg$strata=='surgery=1']/sum_surg$n.risk[sum_surg$strata=='surgery=1']) # calculating Nelson-Aalen estimator for surgery=1
-plot(sum_surg$time[sum_surg$strata=='surgery=0'], nel_al_surg0, type = 's', xlab = 'Time in days', ylab = 'Cumulative Hazard') # ploting cumulative hazard for surgery
-lines(sum_surg$time[sum_surg$strata=='surgery=1'], nel_al_surg1, type = 's', lty = 2)
-legend('topleft', legend=c("Surgery = 0", "Surgery = 1"), lty=1:2, cex=.8)
-
-# estimating the nelson-alan estimator with ggsurvplot
-ggsurvplot(heart_surg, data = heart_data, conf.int = .90, fun = "cumhaz")
-
-
-#### KM on surgery ####
-heart_trans <- survfit(heart ~ transplant, data = heart_data, conf.type="plain", conf.int = .90) # fiting KM
-heart_trans
-sum_trans <- summary(heart_trans)
-ggsurvplot(heart_trans, surv.median.line = "hv", conf.int = T, risk.table = T) # survival plot for transplant
-
 ```
+
 ```{r}
 ggplot() +
   geom_segment(aes(x = 0, y = final.data1$CASEID, xend = final.data1$eventtime, yend = final.data1$CASEID, color = factor(final.data1$event)), linewidth = 1) +
